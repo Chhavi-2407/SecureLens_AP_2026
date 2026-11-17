@@ -1,0 +1,116 @@
+
+erDiagram
+
+    USERS ||--o{ PROJECTS : owns
+    USERS ||--o{ SCANS : starts
+
+    PROJECTS ||--o{ SCANS : has
+    PROJECTS ||--o{ DEPENDENCIES : uses
+
+    SCANS ||--o{ FILES : contains
+    SCANS ||--o{ FINDINGS : produces
+    SCANS ||--|| SCAN_METRICS : has
+
+    FILES ||--o{ FINDINGS : contains
+    VULNERABILITY_TYPES ||--o{ FINDINGS : classifies
+
+    FINDINGS ||--o{ RECOMMENDATIONS : receives
+
+    DEPENDENCIES ||--o{ DEPENDENCY_VULNERABILITIES : has
+
+    USERS {
+        uuid user_id PK
+        string name
+        string email UK
+        string password_hash
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROJECTS {
+        uuid project_id PK
+        uuid user_id FK
+        string name
+        string description
+        string repository_url
+        datetime created_at
+        datetime updated_at
+    }
+
+    SCANS {
+        uuid scan_id PK
+        uuid project_id FK
+        uuid started_by FK
+        string status
+        string language
+        decimal security_score
+        datetime started_at
+        datetime completed_at
+    }
+
+    FILES {
+        uuid file_id PK
+        uuid scan_id FK
+        string file_path
+        string language
+        bigint size_bytes
+    }
+
+    VULNERABILITY_TYPES {
+        uuid vulnerability_type_id PK
+        string name UK
+        string cwe_id
+        string description
+        string default_severity
+    }
+
+    FINDINGS {
+        uuid finding_id PK
+        uuid scan_id FK
+        uuid file_id FK
+        uuid vulnerability_type_id FK
+        string severity
+        decimal confidence
+        integer line_start
+        integer line_end
+        string message
+        string evidence
+        string source_expression
+        string sink_expression
+    }
+
+    SCAN_METRICS {
+        uuid scan_id PK, FK
+        integer total_findings
+        integer critical_count
+        integer high_count
+        integer medium_count
+        integer low_count
+        integer info_count
+        bigint duration_ms
+        decimal security_score
+    }
+
+    RECOMMENDATIONS {
+        uuid recommendation_id PK
+        uuid finding_id FK
+        string description
+        string suggested_fix
+    }
+
+    DEPENDENCIES {
+        uuid dependency_id PK
+        uuid project_id FK
+        string package_name
+        string version
+        string ecosystem
+    }
+
+    DEPENDENCY_VULNERABILITIES {
+        uuid dependency_vulnerability_id PK
+        uuid dependency_id FK
+        string advisory_id
+        string affected_range
+        string fixed_version
+        string severity
+    }
