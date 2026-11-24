@@ -1,0 +1,59 @@
+# Query 03 — After Index Optimization
+
+## Objective
+To measure the performance improvement after creating an index on the `scan_id` column of the `findings` table.
+
+## Optimization Applied
+
+```sql
+CREATE INDEX idx_findings_scan_id
+ON findings(scan_id);
+
+ANALYZE findings;
+```
+
+The index allows PostgreSQL to locate findings belonging to a particular scan without scanning the entire findings table.
+
+## Benchmark Results
+
+| Run | Execution Time |
+|---|---:|
+| Run 1 | 1.111 ms |
+| Run 2 | 0.314 ms |
+| Run 3 | 0.197 ms |
+| Average | 0.541 ms |
+
+## Execution Plan Observations
+
+- PostgreSQL uses `Bitmap Index Scan` on `idx_findings_scan_id`.
+- The `Bitmap Heap Scan` retrieves the matching records.
+- Only 10 findings are retrieved for the selected scan.
+- The previous `Parallel Seq Scan` on the findings table is eliminated.
+- The primary-key index on `vulnerability_types` is used for joining vulnerability details.
+- PostgreSQL uses `Memoize` to reuse repeated lookup results.
+
+## Before vs After Comparison
+
+| Metric | Before | After |
+|---|---:|---:|
+| Average execution time | 31.481 ms | 0.541 ms |
+| Access method for findings | Parallel Sequential Scan | Bitmap Index Scan |
+| Matching findings | 10 | 10 |
+
+## Performance Improvement
+
+Percentage improvement:
+
+((31.481 - 0.541) / 31.481) × 100
+
+= 98.3%
+
+Speedup:
+
+31.481 / 0.541 = 58.3×
+
+## Conclusion
+
+Creating an index on `findings(scan_id)` significantly improved query performance. PostgreSQL now uses the index to locate matching findings instead of scanning a large portion of the table. The average execution time decreased from approximately 31.481 ms to 0.541 ms, representing an improvement of approximately 98.3%.
+
+The optimization demonstrates how appropriate indexing can improve database query performance when filtering large tables.

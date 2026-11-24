@@ -1,0 +1,43 @@
+# Query 04 – Project Search Using an Index
+
+## Objective
+To optimize searching for a project by its name using a B-tree index.
+
+## SQL Query
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT
+    id,
+    name,
+    created_at
+FROM projects
+WHERE name = 'Project 1';
+```
+
+## Index Created
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_projects_name
+ON projects(name);
+```
+
+## Execution Plan Observation
+
+PostgreSQL used:
+
+`Index Scan using idx_projects_name on projects`
+
+The index condition was:
+
+`name = 'Project 1'`
+
+The query returned one row.
+
+## Performance
+
+One detailed execution plan reported an execution time of 0.688 ms. Other observed runs reported 0.076 ms and 0.125 ms.
+
+## Conclusion
+
+The index was successfully created and PostgreSQL used it to locate the project by name. This demonstrates how indexing can improve lookup efficiency, although execution time varies depending on caching and system conditions.

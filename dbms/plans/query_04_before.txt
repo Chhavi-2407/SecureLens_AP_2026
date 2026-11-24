@@ -1,0 +1,57 @@
+# Query 04 — Vulnerability Findings Benchmark (Before Optimization)
+
+## Query Purpose
+Retrieve vulnerability findings for a particular scan, including:
+- Finding ID
+- Severity and confidence
+- Source-code line range
+- Finding message and evidence
+- Source and sink expressions
+- File path
+- Vulnerability name, CWE ID, and description
+
+Results are ordered by severity priority and line number.
+
+## Benchmark Environment
+- Database: securelens_benchmark
+- Findings records: 500,000
+- Scan records: 50,000
+- File records: 100,000
+- Selected scan ID: ac29e140-1020-4af4-8bf0-ca6611247383
+- Rows returned: 10
+
+## Execution Results
+
+| Run | Planning Time | Execution Time |
+|---|---:|---:|
+| 1 | 0.699 ms | 40.769 ms |
+| 2 | 0.347 ms | 27.863 ms |
+| 3 | 0.379 ms | 25.812 ms |
+
+Average execution time: **31.481 ms**
+
+## Query Plan Observations
+
+1. Parallel Sequential Scan is performed on the findings table to filter by scan_id.
+2. A Hash Join connects findings with files using file_id.
+3. A Bitmap Index Scan uses uq_files_scan_path to retrieve matching files.
+4. An Index Scan uses the primary key of vulnerability_types.
+5. Memoize caches repeated vulnerability-type lookups.
+6. Gather combines results from parallel workers.
+7. Sort orders findings by severity priority and line number.
+
+## Identified Optimization Opportunity
+
+The findings table uses a Parallel Sequential Scan even though only 10 records are returned.
+
+A possible optimization is to create an index on findings(scan_id).
+
+The effect of this index must be measured by running the same query again and comparing execution plans and execution times.
+
+## Conclusion
+
+The query successfully returned 10 vulnerability findings in all three executions.
+
+The average execution time before optimization was **31.481 ms**.
+
+This result will serve as the baseline for comparison with the optimized query.

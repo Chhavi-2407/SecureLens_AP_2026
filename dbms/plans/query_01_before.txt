@@ -1,0 +1,14 @@
+Query: Q1 - Retrieve Projects Belonging to a User
+Stage: Before Optimization
+
+Observation:
+PostgreSQL used a Sequential Scan on the projects table.
+It examined 5,000 rows and returned 50 matching projects.
+A Sort operation was performed to order the results by created_at DESC.
+
+Planning Time: 0.361 ms
+Execution Time: 1.482 ms
+
+Conclusion:
+The query performed a Sequential Scan because no suitable
+index was available for filtering projects by user_id.

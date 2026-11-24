@@ -1,0 +1,81 @@
+SecureLens DBMS Benchmark
+Query 02 — Scan history for a project
+File: query_02_after.txt
+Plan type: AFTER index creation
+Index used: idx_scans_project_created (project_id, created_at DESC)
+
+Benchmark query:
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT
+    id, project_id, status, language, security_score,
+    started_at, completed_at, created_at
+FROM scans
+WHERE project_id = '01180456-4514-4170-b1dd-ed9affba07ee'
+ORDER BY created_at DESC;
+
+Execution times:
+Run 1: 0.153 ms
+Run 2: 0.167 ms
+Run 3: 0.102 ms
+Average: 0.141 ms
+
+Plan observations:
+All three plans use Bitmap Index Scan on idx_scans_project_created,
+followed by Bitmap Heap Scan and a separate Sort on scans.created_at DESC.
+The index filters by project_id, but PostgreSQL still sorts the results.
+
+RAW PLAN — RUN 1
+"Sort  (cost=41.39..41.42 rows=10 width=72) (actual time=0.121..0.122 rows=10.00 loops=1)"
+"  Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"  Sort Key: scans.created_at DESC"
+"  Sort Method: quicksort  Memory: 25kB"
+"  Buffers: shared hit=1 read=3"
+"  ->  Bitmap Heap Scan on public.scans  (cost=4.49..41.23 rows=10 width=72) (actual time=0.103..0.107 rows=10.00 loops=1)"
+"        Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"        Recheck Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"        Heap Blocks: exact=1"
+"        Buffers: shared hit=1 read=3"
+"        ->  Bitmap Index Scan on idx_scans_project_created  (cost=0.00..4.49 rows=10 width=0) (actual time=0.087..0.087 rows=10.00 loops=1)"
+"              Index Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"              Index Searches: 1"
+"              Buffers: shared read=3"
+"Planning:"
+"  Buffers: shared hit=47 read=1"
+"Planning Time: 0.671 ms"
+"Execution Time: 0.153 ms"
+
+RAW PLAN — RUN 2
+"Sort  (cost=41.39..41.42 rows=10 width=72) (actual time=0.123..0.124 rows=10.00 loops=1)"
+"  Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"  Sort Key: scans.created_at DESC"
+"  Sort Method: quicksort  Memory: 25kB"
+"  Buffers: shared hit=4"
+"  ->  Bitmap Heap Scan on public.scans  (cost=4.49..41.23 rows=10 width=72) (actual time=0.108..0.109 rows=10.00 loops=1)"
+"        Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"        Recheck Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"        Heap Blocks: exact=1"
+"        Buffers: shared hit=4"
+"        ->  Bitmap Index Scan on idx_scans_project_created  (cost=0.00..4.49 rows=10 width=0) (actual time=0.079..0.079 rows=10.00 loops=1)"
+"              Index Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"              Index Searches: 1"
+"              Buffers: shared hit=3"
+"Planning Time: 0.145 ms"
+"Execution Time: 0.167 ms"
+
+RAW PLAN — RUN 3
+"Sort  (cost=41.39..41.42 rows=10 width=72) (actual time=0.065..0.067 rows=10.00 loops=1)"
+"  Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"  Sort Key: scans.created_at DESC"
+"  Sort Method: quicksort  Memory: 25kB"
+"  Buffers: shared hit=4"
+"  ->  Bitmap Heap Scan on public.scans  (cost=4.49..41.23 rows=10 width=72) (actual time=0.045..0.047 rows=10.00 loops=1)"
+"        Output: id, project_id, status, language, security_score, started_at, completed_at, created_at"
+"        Recheck Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"        Heap Blocks: exact=1"
+"        Buffers: shared hit=4"
+"        ->  Bitmap Index Scan on idx_scans_project_created  (cost=0.00..4.49 rows=10 width=0) (actual time=0.026..0.026 rows=10.00 loops=1)"
+"              Index Cond: (scans.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"              Index Searches: 1"
+"              Buffers: shared hit=3"
+"Planning Time: 0.114 ms"
+"Execution Time: 0.102 ms"

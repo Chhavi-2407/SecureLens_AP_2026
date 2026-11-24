@@ -1,0 +1,151 @@
+
+SecureLens DBMS Benchmark
+Query 05 — Project-level scan statistics
+File: query_05_before.txt
+Project UUID: 01180456-4514-4170-b1dd-ed9affba07ee
+
+Benchmark query:
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT
+    p.id,
+    p.name,
+    COUNT(DISTINCT s.id) AS total_scans,
+    COUNT(DISTINCT f.id) AS total_findings,
+    COUNT(DISTINCT s.id) FILTER (
+        WHERE s.status = 'COMPLETED'
+    ) AS completed_scans
+FROM projects p
+LEFT JOIN scans s ON s.project_id = p.id
+LEFT JOIN findings f ON f.scan_id = s.id
+WHERE p.id = '01180456-4514-4170-b1dd-ed9affba07ee'
+GROUP BY p.id, p.name;
+
+Execution times:
+Run 1: 6.126 ms
+Run 2: 4.438 ms
+Run 3: 4.020 ms
+Average execution time: 4.861 ms
+
+Plan observations:
+- projects_pkey Index Scan finds the selected project.
+- scans uses a Sequential Scan and removes 49,990 rows by filter.
+- findings uses Bitmap Index Scan on idx_findings_scan_id and Bitmap Heap Scan.
+- PostgreSQL sorts the joined rows and uses GroupAggregate.
+- IMPORTANT: idx_findings_scan_id is still present and used in these supplied plans. These are the user's measured BEFORE plans, but not a fully index-free baseline.
+
+==================== RUN 1 ====================
+"GroupAggregate  (cost=1856.60..1857.86 rows=1 width=52) (actual time=5.915..5.917 rows=1.00 loops=1)"
+"  Output: p.id, p.name, count(DISTINCT s.id), count(DISTINCT f.id), count(DISTINCT s.id) FILTER (WHERE (s.status = 'COMPLETED'::scan_status))"
+"  Buffers: shared hit=905 read=10"
+"  ->  Sort  (cost=1856.60..1856.85 rows=100 width=64) (actual time=5.844..5.852 rows=100.00 loops=1)"
+"        Output: p.id, p.name, s.id, f.id, s.status"
+"        Sort Key: s.id"
+"        Sort Method: quicksort  Memory: 32kB"
+"        Buffers: shared hit=905 read=10"
+"        ->  Nested Loop Left Join  (cost=4.78..1853.28 rows=100 width=64) (actual time=0.135..5.779 rows=100.00 loops=1)"
+"              Output: p.id, p.name, s.id, f.id, s.status"
+"              Buffers: shared hit=905 read=10"
+"              ->  Nested Loop Left Join  (cost=0.28..1415.40 rows=10 width=48) (actual time=0.042..4.460 rows=10.00 loops=1)"
+"                    Output: p.id, p.name, s.id, s.status"
+"                    Buffers: shared hit=785"
+"                    ->  Index Scan using projects_pkey on public.projects p  (cost=0.28..8.30 rows=1 width=28) (actual time=0.032..0.033 rows=1.00 loops=1)"
+"                          Output: p.id, p.user_id, p.name, p.description, p.repository_url, p.created_at, p.updated_at"
+"                          Index Cond: (p.id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Index Searches: 1"
+"                          Buffers: shared hit=3"
+"                    ->  Seq Scan on public.scans s  (cost=0.00..1407.00 rows=10 width=36) (actual time=0.009..4.423 rows=10.00 loops=1)"
+"                          Output: s.id, s.project_id, s.started_by, s.status, s.language, s.security_score, s.started_at, s.completed_at, s.created_at, s.updated_at"
+"                          Filter: (s.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Rows Removed by Filter: 49990"
+"                          Buffers: shared hit=782"
+"              ->  Bitmap Heap Scan on public.findings f  (cost=4.50..43.69 rows=10 width=32) (actual time=0.121..0.128 rows=10.00 loops=10)"
+"                    Output: f.id, f.scan_id, f.file_id, f.vulnerability_type_id, f.severity, f.confidence, f.line_start, f.line_end, f.message, f.evidence, f.source_expression, f.sink_expression, f.created_at"
+"                    Recheck Cond: (f.scan_id = s.id)"
+"                    Heap Blocks: exact=100"
+"                    Buffers: shared hit=120 read=10"
+"                    ->  Bitmap Index Scan on idx_findings_scan_id  (cost=0.00..4.50 rows=10 width=0) (actual time=0.118..0.118 rows=10.00 loops=10)"
+"                          Index Cond: (f.scan_id = s.id)"
+"                          Index Searches: 10"
+"                          Buffers: shared hit=20 read=10"
+"Planning:"
+"  Buffers: shared hit=49 read=5 dirtied=1"
+"Planning Time: 2.087 ms"
+"Execution Time: 6.126 ms"
+
+==================== RUN 2 ====================
+"GroupAggregate  (cost=1856.60..1857.86 rows=1 width=52) (actual time=4.380..4.383 rows=1.00 loops=1)"
+"  Output: p.id, p.name, count(DISTINCT s.id), count(DISTINCT f.id), count(DISTINCT s.id) FILTER (WHERE (s.status = 'COMPLETED'::scan_status))"
+"  Buffers: shared hit=915"
+"  ->  Sort  (cost=1856.60..1856.85 rows=100 width=64) (actual time=4.333..4.340 rows=100.00 loops=1)"
+"        Output: p.id, p.name, s.id, f.id, s.status"
+"        Sort Key: s.id"
+"        Sort Method: quicksort  Memory: 32kB"
+"        Buffers: shared hit=915"
+"        ->  Nested Loop Left Join  (cost=4.78..1853.28 rows=100 width=64) (actual time=0.084..4.297 rows=100.00 loops=1)"
+"              Output: p.id, p.name, s.id, f.id, s.status"
+"              Buffers: shared hit=915"
+"              ->  Nested Loop Left Join  (cost=0.28..1415.40 rows=10 width=48) (actual time=0.039..4.083 rows=10.00 loops=1)"
+"                    Output: p.id, p.name, s.id, s.status"
+"                    Buffers: shared hit=785"
+"                    ->  Index Scan using projects_pkey on public.projects p  (cost=0.28..8.30 rows=1 width=28) (actual time=0.020..0.023 rows=1.00 loops=1)"
+"                          Output: p.id, p.user_id, p.name, p.description, p.repository_url, p.created_at, p.updated_at"
+"                          Index Cond: (p.id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Index Searches: 1"
+"                          Buffers: shared hit=3"
+"                    ->  Seq Scan on public.scans s  (cost=0.00..1407.00 rows=10 width=36) (actual time=0.018..4.056 rows=10.00 loops=1)"
+"                          Output: s.id, s.project_id, s.started_by, s.status, s.language, s.security_score, s.started_at, s.completed_at, s.created_at, s.updated_at"
+"                          Filter: (s.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Rows Removed by Filter: 49990"
+"                          Buffers: shared hit=782"
+"              ->  Bitmap Heap Scan on public.findings f  (cost=4.50..43.69 rows=10 width=32) (actual time=0.012..0.019 rows=10.00 loops=10)"
+"                    Output: f.id, f.scan_id, f.file_id, f.vulnerability_type_id, f.severity, f.confidence, f.line_start, f.line_end, f.message, f.evidence, f.source_expression, f.sink_expression, f.created_at"
+"                    Recheck Cond: (f.scan_id = s.id)"
+"                    Heap Blocks: exact=100"
+"                    Buffers: shared hit=130"
+"                    ->  Bitmap Index Scan on idx_findings_scan_id  (cost=0.00..4.50 rows=10 width=0) (actual time=0.008..0.008 rows=10.00 loops=10)"
+"                          Index Cond: (f.scan_id = s.id)"
+"                          Index Searches: 10"
+"                          Buffers: shared hit=30"
+"Planning:"
+"  Buffers: shared hit=22"
+"Planning Time: 0.372 ms"
+"Execution Time: 4.438 ms"
+
+==================== RUN 3 ====================
+"GroupAggregate  (cost=1856.60..1857.86 rows=1 width=52) (actual time=3.965..3.967 rows=1.00 loops=1)"
+"  Output: p.id, p.name, count(DISTINCT s.id), count(DISTINCT f.id), count(DISTINCT s.id) FILTER (WHERE (s.status = 'COMPLETED'::scan_status))"
+"  Buffers: shared hit=915"
+"  ->  Sort  (cost=1856.60..1856.85 rows=100 width=64) (actual time=3.921..3.927 rows=100.00 loops=1)"
+"        Output: p.id, p.name, s.id, f.id, s.status"
+"        Sort Key: s.id"
+"        Sort Method: quicksort  Memory: 32kB"
+"        Buffers: shared hit=915"
+"        ->  Nested Loop Left Join  (cost=4.78..1853.28 rows=100 width=64) (actual time=0.049..3.877 rows=100.00 loops=1)"
+"              Output: p.id, p.name, s.id, f.id, s.status"
+"              Buffers: shared hit=915"
+"              ->  Nested Loop Left Join  (cost=0.28..1415.40 rows=10 width=48) (actual time=0.028..3.686 rows=10.00 loops=1)"
+"                    Output: p.id, p.name, s.id, s.status"
+"                    Buffers: shared hit=785"
+"                    ->  Index Scan using projects_pkey on public.projects p  (cost=0.28..8.30 rows=1 width=28) (actual time=0.015..0.018 rows=1.00 loops=1)"
+"                          Output: p.id, p.user_id, p.name, p.description, p.repository_url, p.created_at, p.updated_at"
+"                          Index Cond: (p.id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Index Searches: 1"
+"                          Buffers: shared hit=3"
+"                    ->  Seq Scan on public.scans s  (cost=0.00..1407.00 rows=10 width=36) (actual time=0.012..3.663 rows=10.00 loops=1)"
+"                          Output: s.id, s.project_id, s.started_by, s.status, s.language, s.security_score, s.started_at, s.completed_at, s.created_at, s.updated_at"
+"                          Filter: (s.project_id = '01180456-4514-4170-b1dd-ed9affba07ee'::uuid)"
+"                          Rows Removed by Filter: 49990"
+"                          Buffers: shared hit=782"
+"              ->  Bitmap Heap Scan on public.findings f  (cost=4.50..43.69 rows=10 width=32) (actual time=0.008..0.016 rows=10.00 loops=10)"
+"                    Output: f.id, f.scan_id, f.file_id, f.vulnerability_type_id, f.severity, f.confidence, f.line_start, f.line_end, f.message, f.evidence, f.source_expression, f.sink_expression, f.created_at"
+"                    Recheck Cond: (f.scan_id = s.id)"
+"                    Heap Blocks: exact=100"
+"                    Buffers: shared hit=130"
+"                    ->  Bitmap Index Scan on idx_findings_scan_id  (cost=0.00..4.50 rows=10 width=0) (actual time=0.006..0.006 rows=10.00 loops=10)"
+"                          Index Cond: (f.scan_id = s.id)"
+"                          Index Searches: 10"
+"                          Buffers: shared hit=30"
+"Planning:"
+"  Buffers: shared hit=22"
+"Planning Time: 0.353 ms"
+"Execution Time: 4.020 ms"

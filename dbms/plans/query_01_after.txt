@@ -1,0 +1,42 @@
+# Query 01 – User Projects (After Optimization)
+
+## Optimization Applied
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_projects_user_created
+ON projects(user_id, created_at DESC);
+
+ANALYZE projects;
+```
+
+## Execution Plan Observations
+
+1. PostgreSQL used `Bitmap Index Scan` on `idx_projects_user_created`.
+2. A Bitmap Heap Scan retrieved the matching project records.
+3. The query returned 50 projects.
+4. PostgreSQL performed a separate Sort operation on created_at DESC.
+5. The index successfully reduced the need to scan the entire projects table.
+
+## Performance Results
+
+Execution Time: 0.757 ms
+
+Planning Time: 1.003 ms
+
+Rows Returned: 50
+
+## Before and After Comparison
+
+| Metric | Before | After |
+|---|---:|---:|
+| Execution Time | 1.482 ms | 0.757 ms |
+| Scan Type | Sequential Scan | Bitmap Index Scan |
+| Rows Returned | 50 | 50 |
+
+## Performance Improvement
+
+((1.482 - 0.757) / 1.482) × 100 = 48.9%
+
+## Conclusion
+
+The composite index on user_id and created_at improved the query performance. PostgreSQL used the index to identify projects belonging to the selected user, reducing the execution time from 1.482 ms to 0.757 ms.

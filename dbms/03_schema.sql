@@ -89,3 +89,53 @@ CREATE TABLE findings (
     -- Composite FK guarantees that the referenced file belongs to this scan.
     CONSTRAINT fk_findings_file_scan
         FOREIGN KEY (file_id, scan_id) REFERENCES files(id, scan_id) ON DELETE CASCADE,
+
+    -- Every finding must reference a valid vulnerability type.
+    CONSTRAINT fk_findings_vulnerability_type
+        FOREIGN KEY (vulnerability_type_id)
+        REFERENCES vulnerability_types(id)
+        ON DELETE RESTRICT,
+
+    -- Severity must be one of the supported levels.
+    CONSTRAINT chk_findings_severity
+        CHECK (severity IN ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO')),
+
+    -- Confidence must be between 0 and 1.
+    CONSTRAINT chk_findings_confidence
+        CHECK (confidence BETWEEN 0 AND 1),
+
+    -- Line numbers must be positive when provided.
+    CONSTRAINT chk_findings_line_start
+        CHECK (line_start IS NULL OR line_start > 0),
+
+    CONSTRAINT chk_findings_line_end
+        CHECK (line_end IS NULL OR line_end > 0),
+
+    -- End line cannot be before start line.
+    CONSTRAINT chk_findings_line_range
+        CHECK (
+            line_start IS NULL
+            OR line_end IS NULL
+            OR line_end >= line_start
+        )
+);
+
+-- Projects belonging to a user, newest first
+CREATE INDEX idx_projects_user_created
+ON projects(user_id, created_at DESC);
+
+-- Scans belonging to a project, newest first
+CREATE INDEX idx_scans_project_created
+ON scans(project_id, created_at DESC);
+
+-- Findings grouped or filtered by scan and severity
+CREATE INDEX idx_findings_scan_severity
+ON findings(scan_id, severity);
+
+-- Finding lookup by vulnerability type
+CREATE INDEX idx_findings_vulnerability_type
+ON findings(vulnerability_type_id);
+
+-- Finding lookup by file and scan
+CREATE INDEX idx_findings_file_scan
+ON findings(file_id, scan_id);

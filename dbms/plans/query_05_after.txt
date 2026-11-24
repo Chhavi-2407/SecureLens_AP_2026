@@ -1,0 +1,101 @@
+# Query 05 – Latest Scans Using a Composite Index
+
+## Objective
+To retrieve the 10 most recent scans belonging to a particular project and evaluate the performance of a composite index.
+
+## SQL Query
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT
+    id,
+    project_id,
+    status,
+    language,
+    security_score,
+    created_at
+FROM scans
+WHERE project_id = (
+    SELECT id
+    FROM projects
+    WHERE name = 'Project 1'
+)
+ORDER BY created_at DESC
+LIMIT 10;
+```
+
+## Index Created
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_scans_project_created
+ON scans(project_id, created_at DESC);
+```
+
+## Execution Plan Observations
+
+- PostgreSQL used `idx_projects_name` to find the project.
+- PostgreSQL used `idx_scans_project_created` to locate scans belonging to that project.
+- A Bitmap Index Scan was performed on the composite index.
+- A Bitmap Heap Scan retrieved the matching rows.
+- PostgreSQL performed an additional Sort operation on `created_at DESC`.
+- The query returned 10 rows.
+
+## Performance Results
+
+| Run | Execution Time |
+|---|---:|
+| 1 | 0.723 ms |
+| 2 | 0.091 ms |
+| 3 | 0.283 ms |
+
+## Conclusion
+
+The composite index was successfully used to filter scans by project ID. However, PostgreSQL still performed a separate sorting operation. This demonstrates that index usage and sort elimination are two different aspects of query optimization.
+
+
+## Additional Experiment – Index Scan Without Bitmap Scan
+
+### SQL Command
+
+```sql
+SET enable_bitmapscan = OFF;
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT
+    id,
+    project_id,
+    status,
+    language,
+    security_score,
+    created_at
+FROM scans
+WHERE project_id = (
+    SELECT id
+    FROM projects
+    WHERE name = 'Project 1'
+)
+ORDER BY created_at DESC
+LIMIT 10;
+
+RESET enable_bitmapscan;
+```
+
+### Execution Plan Observation
+
+PostgreSQL used:
+
+`Index Scan using idx_scans_project_created on scans`
+
+The index condition filtered records using project_id.
+
+The separate Sort operation disappeared because the composite index already stores records in the required ordering.
+
+### Execution Time
+
+0.401 ms
+
+### Conclusion
+
+Disabling bitmap scans for this diagnostic experiment encouraged PostgreSQL to use a regular index scan. The composite index provided rows in the required order and eliminated the explicit sorting operation. The setting was reset after the experiment.
+
+This demonstrates how index scan selection can affect query execution plans.

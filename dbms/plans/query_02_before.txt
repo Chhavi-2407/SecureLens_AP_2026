@@ -1,0 +1,93 @@
+
+QUERY 02 — BEFORE INDEX OPTIMIZATION
+Project Scan History
+
+Database: securelens_benchmark
+Table: scans
+Total scans: 50,000
+Target project: Project 1
+
+Query:
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT
+    id,
+    project_id,
+    status,
+    language,
+    security_score,
+    started_at,
+    completed_at,
+    created_at
+FROM scans
+WHERE project_id = (
+    SELECT id
+    FROM projects
+    WHERE name = 'Project 1'
+)
+ORDER BY created_at DESC;
+
+
+EXECUTION PLAN OBSERVATIONS
+
+1. Project Lookup
+   Scan Type: Sequential Scan
+   Table: projects
+   Actual Rows: 1
+   Rows Removed by Filter: 4,999
+   Buffer Hits: 97
+
+2. Scan Lookup
+   Scan Type: Sequential Scan
+   Table: scans
+   Actual Rows: 10
+   Rows Removed by Filter: 49,990
+   Buffer Hits: 879
+
+3. Sorting
+   Sort Method: quicksort
+   Sort Key: scans.created_at DESC
+   Memory: 25 kB
+   Output Rows: 10
+
+
+PERFORMANCE MEASUREMENTS
+
+Run 1:
+Planning Time: 2.092 ms
+Execution Time: 9.043 ms
+
+Run 2:
+Planning Time: 0.185 ms
+Execution Time: 6.117 ms
+
+Run 3:
+Planning Time: 0.136 ms
+Execution Time: 8.020 ms
+
+AVERAGE PERFORMANCE
+
+Average Planning Time: 0.804 ms
+Average Execution Time: 7.727 ms
+
+
+ANALYSIS
+
+The query performs sequential scans on both the
+projects and scans tables.
+
+PostgreSQL examines all 5,000 projects to locate
+Project 1 and examines all 50,000 scan records
+to retrieve the matching scans.
+
+Only 10 scan records match the requested project.
+The remaining 49,990 records are removed by the filter.
+
+The matching records are sorted by created_at in
+descending order using quicksort.
+
+The execution plan indicates that additional indexes
+on the project lookup and scan filtering/sorting
+columns may improve query performance.
+
+This is the baseline result before adding the
+proposed optimization indexes.

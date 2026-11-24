@@ -1,0 +1,74 @@
+
+QUERY 03 - VULNERABILITY FINDINGS
+==================================
+
+Objective:
+Retrieve vulnerability findings for the latest scan of Project 1, including severity, confidence, source code line numbers, file paths, vulnerability category and CWE ID.
+
+Query:
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT
+    fi.id,
+    fi.severity,
+    fi.confidence,
+    fi.line_start,
+    fi.line_end,
+    fi.message,
+    fi.evidence,
+    f.path AS file_path,
+    vt.name AS vulnerability_name,
+    vt.cwe_id
+FROM findings fi
+JOIN files f
+    ON fi.file_id = f.id
+   AND fi.scan_id = f.scan_id
+JOIN vulnerability_types vt
+    ON fi.vulnerability_type_id = vt.id
+WHERE fi.scan_id = (
+    SELECT id
+    FROM scans
+    WHERE project_id = (
+        SELECT id
+        FROM projects
+        WHERE name = 'Project 1'
+    )
+    ORDER BY created_at DESC
+    LIMIT 1
+)
+ORDER BY fi.severity, fi.line_start;
+
+BASELINE EXECUTION RESULTS
+==========================
+
+Run 1: 42.928 ms
+Run 2: 49.888 ms
+Run 3: 35.369 ms
+
+Average Execution Time: 42.728 ms
+
+Planning Times:
+Run 1: 1.697 ms
+Run 2: 0.886 ms
+Run 3: 0.476 ms
+
+Average Planning Time: 1.020 ms
+
+Rows Returned: 10
+
+QUERY PLAN OBSERVATIONS
+=======================
+
+1. PostgreSQL uses a Parallel Sequential Scan on the findings table.
+2. Approximately 500,000 findings are present in the benchmark dataset.
+3. The scan_id filter removes a large number of rows.
+4. A Hash Join is used to combine findings with files.
+5. An Index Scan using vulnerability_types_pkey is used to retrieve vulnerability category details.
+6. Memoize caches repeated vulnerability type lookups.
+7. A Gather operation combines parallel worker results.
+8. A final Sort orders the results by severity and line_start.
+9. The existing uq_files_scan_path index is used while retrieving file records.
+
+Conclusion:
+The query successfully retrieves 10 vulnerability findings. However, the Parallel Sequential Scan on the findings table is a potential optimization target because PostgreSQL scans a large number of records to locate findings belonging to the selected scan.
+
+This is the baseline result before index optimization.
